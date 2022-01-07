@@ -1084,17 +1084,7 @@ impl<Backing : AsRef<[u32]> + AsMut<[u32]>> DrawTarget<Backing> {
         self.buf
     }
 
-    /// Saves the current pixel to a png file at `path`
-    #[cfg(feature = "png")]
-    pub fn write_png<P: AsRef<std::path::Path>>(&self, path: P) -> Result<(), png::EncodingError> {
-        let file = File::create(path)?;
-
-        let w = &mut BufWriter::new(file);
-
-        let mut encoder = png::Encoder::new(w, self.width as u32, self.height as u32);
-        encoder.set_color(png::ColorType::RGBA);
-        encoder.set_depth(png::BitDepth::Eight);
-        let mut writer = encoder.write_header()?;
+    pub fn png_data(&self) -> Vec<u8> {        
         let buf = self.buf.as_ref();
         let mut output = Vec::with_capacity(buf.len() * 4);
 
@@ -1115,6 +1105,22 @@ impl<Backing : AsRef<[u32]> + AsMut<[u32]>> DrawTarget<Backing> {
             output.push(b as u8);
             output.push(a as u8);
         }
+        
+        output
+    }
+
+    /// Saves the current pixel to a png file at `path`
+    #[cfg(feature = "png")]
+    pub fn write_png<P: AsRef<std::path::Path>>(&self, path: P) -> Result<(), png::EncodingError> {
+        let file = File::create(path)?;
+        let w = &mut BufWriter::new(file);
+
+        let mut encoder = png::Encoder::new(w, self.width as u32, self.height as u32);
+        encoder.set_color(png::ColorType::RGBA);
+        encoder.set_depth(png::BitDepth::Eight);
+        let mut writer = encoder.write_header()?;
+
+        let output = self.png_data();
 
         writer.write_image_data(&output)
     }
